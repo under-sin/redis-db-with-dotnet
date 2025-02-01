@@ -18,12 +18,16 @@ public class InvestimentService : IInvestimentService
 
     public async Task<Guid> AddInvestimentAsync(Investiment investiment)
     {
-        string key = $"investiments:{investiment.Id}";
+        string key = $"userId_{investiment.Id}";
 
         await _cache.SetStringAsync(
             key, 
             JsonSerializer.Serialize(investiment),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _expiration }
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = _expiration
+                // SlidingExpiration = TimeSpan.FromMinutes(2) // expira toda vez que o dado eh acessado
+            }
         );
         
         Console.WriteLine($"Added investiment {investiment.Id}");
@@ -32,8 +36,9 @@ public class InvestimentService : IInvestimentService
 
     public async Task<Investiment?> GetInvestimentsAsync(Guid userId)
     {
-        string key = $"investiments:{userId}";
+        string key = $"userId_{userId}";
         
+        // recupera os dados e verifica de existem
         var cachedData = await _cache.GetStringAsync(key);
         if (cachedData != null)
         {

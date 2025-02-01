@@ -13,7 +13,7 @@ builder.Services.AddScoped<IInvestimentService, InvestimentService>();
 builder.Services.AddStackExchangeRedisCache(op =>
 {
     op.Configuration = builder.Configuration.GetConnectionString("RedisCache");
-    op.InstanceName = "ExemploApp_"; // prefix opticional
+    op.InstanceName = "investiments:"; // prefix opticional
 });
 
 var app = builder.Build();
