@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Distributed;
 using RedisImMemmoryDB.Interfaces;
 using StackExchange.Redis;
 
@@ -6,41 +7,41 @@ namespace RedisImMemmoryDB;
 
 public class InvestimentService : IInvestimentService
 {
-    private readonly IDatabase _db;
+    private readonly IDistributedCache _cache;
+    private readonly TimeSpan _expiration = TimeSpan.FromMinutes(5);
 
-    public InvestimentService() 
+    public InvestimentService(IDistributedCache cache) 
     {
-        _db = RedisConnection.Connection.GetDatabase();
+        _cache = cache;
     }
 
-    public async Task AddInvestimentAsync(Investiment investiment) 
+
+    public async Task<Guid> AddInvestimentAsync(Investiment investiment)
     {
         string key = $"investiments:{investiment.Id}";
 
-        var investimentJson = JsonSerializer.Serialize(investiment);
-
-        await _db.ListLeftPushAsync(key, investimentJson);
+        await _cache.SetStringAsync(
+            key, 
+            JsonSerializer.Serialize(investiment),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _expiration }
+        );
+        
+        Console.WriteLine($"Added investiment {investiment.Id}");
+        return investiment.Id;
     }
 
-    public async Task<List<Investiment>> GetInvestimentsAsync(Guid userId)
+    public async Task<Investiment?> GetInvestimentsAsync(Guid userId)
     {
         string key = $"investiments:{userId}";
-
-        long listlength = await _db.ListLengthAsync(key);
-
-        var range = await _db.ListRangeAsync(key, 0, listlength-1);
-
-        // desserializa cada item da lista
-        List<Investiment> investiments = [];
-        foreach (var item in range) 
+        
+        var cachedData = await _cache.GetStringAsync(key);
+        if (cachedData != null)
         {
-            var investiment = JsonSerializer.Deserialize<Investiment>(item.ToString());
-            if (investiment != null) 
-            {
-                investiments.Add(investiment);
-            }
+            Console.WriteLine($"Retrieved investiment {cachedData}");
+            return JsonSerializer.Deserialize<Investiment>(cachedData);
         }
-
-        return investiments;
+        
+        Console.WriteLine($"Item not found for investiment {userId}");
+        throw new Exception($"Item not found for investiment {userId}");
     }
 }

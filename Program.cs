@@ -9,6 +9,13 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IInvestimentService, InvestimentService>();
 
+// configuração do redis cache
+builder.Services.AddStackExchangeRedisCache(op =>
+{
+    op.Configuration = builder.Configuration.GetConnectionString("RedisCache");
+    op.InstanceName = "ExemploApp_"; // prefix opticional
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -19,10 +26,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPost("/insertInvestiment", async ([FromServices] IInvestimentService service, [FromBody] Investiment investiment) => {
-    await service.AddInvestimentAsync(investiment);
-    return Results.Created("", investiment.Id);
-});
+app.MapPost("/insertInvestiment",
+    async ([FromServices] IInvestimentService service, [FromBody] Investiment investiment) =>
+    {
+        var investimentId = await service.AddInvestimentAsync(investiment);
+        return Results.Created("", investimentId);
+    });
 
 app.MapGet("/investiments/{id}", async ([FromServices] IInvestimentService service, Guid userId) =>
 {
@@ -31,8 +40,3 @@ app.MapGet("/investiments/{id}", async ([FromServices] IInvestimentService servi
 });
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

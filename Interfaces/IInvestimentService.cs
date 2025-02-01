@@ -2,6 +2,6 @@ namespace RedisImMemmoryDB.Interfaces;
 
 public interface IInvestimentService
 {
-    Task AddInvestimentAsync(Investiment investiment);
-    Task<List<Investiment>> GetInvestimentsAsync(Guid userId);
+    Task<Guid> AddInvestimentAsync(Investiment investiment);
+    Task<Investiment?> GetInvestimentsAsync(Guid userId);
 }
